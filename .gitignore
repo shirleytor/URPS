@@ -26,3 +26,4 @@ paper/*.pdf
 # Files to keep locally but not push up:
 paper/bib/bens.bib
 GH-issue-comments.txt
+.Rproj.user
