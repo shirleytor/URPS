@@ -34,9 +34,15 @@ fauxScoresDat <- data.frame(
 )
 fauxScoresDat <- fauxScoresDat %>% 
   left_join(join_data %>% select(matches.final,Population,mort_wndr,mdcdExp,FIPS), by = join_by(matches.final))
+fauxScoresDat <- fauxScoresDat %>% drop_na(mort_wndr)
+
+fauxScoresDat <- fauxScoresDat %>% mutate(mort_wndr = mort_wndr / Population * 100000 )
 
 fauxWeights <- (fauxScoresDat$Population) / (fauxScoresDat$mdcdExp * fauxScoresDat$scoresExp + (1 - fauxScoresDat$mdcdExp) * fauxScoresDat$scoresExp)
 
-
+IVP_ATE <- fauxScoresDat %>%
+  summarise(
+    ATE = sum(mdcdExp * mort_wndr / scoresExp - (1 - mdcdExp) * mort_wndr / scoresNoExp) / n()
+  )
 
 
