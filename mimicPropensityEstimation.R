@@ -1,5 +1,11 @@
+#Script to calculate the Hajeck estimator for treatment effect based on approximated
+#propensity scores
+
+#Load the data, assumes the base directory is URPS/analysis
 pub_data <- local(get(load("../data/public.mod.dat.Rdata")))
 
+#Clean the data to get rid of the unwanted values, also makes mort_wndr which we will
+#renormailize later, but I didn't want to mess any of the calculation up
 age_adj <- read.delim(file = "../data-raw/wonder/wonder_2014_ac_age_adj.txt")
 age_adj <- age_adj %>%
   mutate(across(Deaths:Age.Adjusted.Rate, ~ as.numeric(case_when(.x %in% c("Suppressed", "Unreliable", "Missing") ~ "",
@@ -19,6 +25,7 @@ join_data <- age_adj %>%
   mutate(matches.final = matches.final) %>%
   drop_na(matches.final)
 
+#Load white populations from WNDR
 white_age_adj <- read.delim(file = "../data-raw/wonder/wonder_2014_ac_white_age_adj.txt")
 white_age_adj <- white_age_adj %>%
   mutate(across(Deaths:Age.Adjusted.Rate, ~ as.numeric(case_when(.x %in% c("Suppressed", "Unreliable", "Missing") ~ "",
@@ -29,17 +36,20 @@ white_age_adj <- white_age_adj %>%
 join_data <- join_data %>%
   left_join(white_age_adj, by = "FIPS")
 
+#Calculate the super majority white counties by taking a high percentile of the 
+#proportions of white people in each county.
 join_data$WhitePercent <- join_data$WPopulation / join_data$Population
-join_data$SMW <- join_data$WhitePercent >= quantile(join_data$WhitePercent, 0.95)
+join_data$SMW <- join_data$WhitePercent >= quantile(join_data$WhitePercent, 0.985)
 
 temp_matches.final <- join_data[["matches.final"]]
 
+#Finds the number of treated groups in each match.
 treatNumInGroup <- join_data %>%
   filter(mdcdExp == 1) %>%
   count(matches.final) %>%
   mutate(matches.final = as.character(matches.final)) %>%
   rename(treated_n = n)
-
+#Finds number of total elements of each match
 numsPerGroup <- join_data %>%
   count(matches.final) %>%
   rename(Freq = n) %>%
@@ -47,6 +57,7 @@ numsPerGroup <- join_data %>%
   left_join(treatNumInGroup, by = "matches.final") %>%
   mutate(treated_n = replace_na(treated_n, 0))
 
+#Calculates the propensity score estimates
 fauxPScoresExp <- numsPerGroup$treated_n / numsPerGroup$Freq
 fauxPScoresNoExp <- 1 - fauxPScoresExp
 
@@ -69,7 +80,7 @@ fauxScoresDat <- fauxScoresDat %>% mutate(mort_wndr = mort_wndr / Population * 1
 fauxScoresDat <- fauxScoresDat %>%
   filter(scoresExp > 0, scoresNoExp > 0)
 
-fauxWeights <- (fauxScoresDat$Population) / (fauxScoresDat$mdcdExp * fauxScoresDat$scoresExp + (1 - fauxScoresDat$mdcdExp) * fauxScoresDat$scoresExp)
+#fauxWeights <- (fauxScoresDat$Population) / (fauxScoresDat$mdcdExp * fauxScoresDat$scoresExp + (1 - fauxScoresDat$mdcdExp) * fauxScoresDat$scoresExp)
 
 Hajeck_Est <- fauxScoresDat %>%
   filter(SMW == TRUE) %>%
