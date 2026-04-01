@@ -92,7 +92,6 @@ Hajeck_Est <- fauxScoresDat %>%
   )
 
 s2EstExp <- fauxScoresDat %>%
-  filter(SMW == TRUE) %>%
   group_by(matches.final) %>%
   filter(sum(mdcdExp) > 0, sum(1 - mdcdExp) > 0) %>%
   add_count(matches.final, name = "n_stratum") %>% 
@@ -112,7 +111,10 @@ s2EstExp <- fauxScoresDat %>%
          nb0^{-1} * sum((pseudoObservationsNoExp[mdcdExp == 0] - sum(pseudoObservationsNoExp[mdcdExp == 0])/nb0)^2))
   )
 
-return(list(est = Hajeck_Est, var = s2EstExp))
+varFinalEst <- sum(s2EstExp$varEst) / (length(s2EstExp$varEst) ^2)
+CI <- list(Lower = Hajeck_Est$ATE - sqrt(varFinalEst) * 1.96, Upper = Hajeck_Est$ATE + sqrt(varFinalEst) * 1.96)
+
+return(list(est = Hajeck_Est, var = varFinalEst, CI = CI))
 
 }
 
