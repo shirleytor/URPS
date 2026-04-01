@@ -1,3 +1,4 @@
+mimicPropensityEstimation <- function(level){
 #Script to calculate the Hajeck estimator for treatment effect based on approximated
 #propensity scores
 
@@ -39,7 +40,7 @@ join_data <- join_data %>%
 #Calculate the super majority white counties by taking a high percentile of the 
 #proportions of white people in each county.
 join_data$WhitePercent <- join_data$WPopulation / join_data$Population
-join_data$SMW <- join_data$WhitePercent >= quantile(join_data$WhitePercent, 0.985)
+join_data$SMW <- join_data$WhitePercent >= quantile(join_data$WhitePercent, level)
 
 temp_matches.final <- join_data[["matches.final"]]
 
@@ -90,4 +91,28 @@ Hajeck_Est <- fauxScoresDat %>%
       ATE = treated - control
   )
 
+s2EstExp <- fauxScoresDat %>%
+  filter(SMW == TRUE) %>%
+  group_by(matches.final) %>%
+  filter(sum(mdcdExp) > 0, sum(1 - mdcdExp) > 0) %>%
+  add_count(matches.final, name = "n_stratum") %>% 
+  mutate(
+    nb1 = sum(mdcdExp),
+    nb0 = sum(1 - mdcdExp),
+    pseudoObservationsExp = n_stratum * (mort_wndr * mdcdExp - Hajeck_Est$treated),
+    pseudoObservationsNoExp = n_stratum * (mort_wndr * (1 - mdcdExp) - Hajeck_Est$control)
+  ) %>%
+  summarise(
+    nb1 = first(nb1),
+    nb0 = first(nb0),
+    varEst = (nb1 * nb0)^{-1} * sum(outer(
+      pseudoObservationsExp[mdcdExp == 1], 
+      pseudoObservationsNoExp[mdcdExp == 0], '-')^2) -
+      (nb1^{-1} * sum((pseudoObservationsExp[mdcdExp == 1] - sum(pseudoObservationsExp[mdcdExp == 1])/nb1)^2) +
+         nb0^{-1} * sum((pseudoObservationsNoExp[mdcdExp == 0] - sum(pseudoObservationsNoExp[mdcdExp == 0])/nb0)^2))
+  )
+
+return(list(est = Hajeck_Est, var = s2EstExp))
+
+}
 
