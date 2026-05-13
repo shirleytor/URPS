@@ -1,7 +1,7 @@
 mimicPropensityEstimation <- function(level){
 ################################################################################
 #Script to calculate the Hajeck estimator ATE and Variance for a given super majority
-#white cutoff level.
+#white cutoff level. Assumes path to be based at URPS/analysis.
 #
 # Input:
 #   level - the target super majority white cutoff quantile
