@@ -1,6 +1,16 @@
 mimicPropensityEstimation <- function(level){
-#Script to calculate the Hajeck estimator for treatment effect based on approximated
-#propensity scores
+################################################################################
+#Script to calculate the Hajeck estimator ATE and Variance for a given super majority
+#white cutoff level.
+#
+# Input:
+#   level - the target super majority white cutoff quantile
+#  Output:
+#   est - Hajeck ATE 
+#   var - Hajeck Varience
+#   CI - Upper and lower for confidence interval derived from the above for alpha = 95% 
+#
+################################################################################
 
 #Load the data, assumes the base directory is URPS/analysis
 pub_data <- local(get(load("../data/public.mod.dat.Rdata")))
@@ -84,13 +94,14 @@ fauxScoresDat <- fauxScoresDat %>%
 #fauxWeights <- (fauxScoresDat$Population) / (fauxScoresDat$mdcdExp * fauxScoresDat$scoresExp + (1 - fauxScoresDat$mdcdExp) * fauxScoresDat$scoresExp)
 
 Hajeck_Est <- fauxScoresDat %>%
-  filter(SMW == TRUE) %>%
+  filter(SMW == TRUE) %>% filter(duplicated(col) | duplicated(col, fromLast = TRUE)) %>%
     summarise(
       treated = sum((mdcdExp * mort_wndr) / scoresExp) / sum(mdcdExp / scoresExp),
       control = sum(((1-mdcdExp) * mort_wndr) / scoresNoExp) / sum((1-mdcdExp) / scoresNoExp),
       ATE = treated - control
   )
 
+#Implement the variance and CI calculations from Professor Hansen's paper.
 s2EstExp <- fauxScoresDat %>%
   group_by(matches.final) %>%
   filter(sum(mdcdExp) > 0, sum(1 - mdcdExp) > 0) %>%
