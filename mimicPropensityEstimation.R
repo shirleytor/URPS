@@ -94,7 +94,7 @@ fauxScoresDat <- fauxScoresDat %>%
 #fauxWeights <- (fauxScoresDat$Population) / (fauxScoresDat$mdcdExp * fauxScoresDat$scoresExp + (1 - fauxScoresDat$mdcdExp) * fauxScoresDat$scoresExp)
 
 Hajeck_Est <- fauxScoresDat %>%
-  filter(SMW == TRUE) %>% filter(duplicated(col) | duplicated(col, fromLast = TRUE)) %>%
+  filter(SMW == TRUE) %>%
     summarise(
       treated = sum((mdcdExp * mort_wndr) / scoresExp) / sum(mdcdExp / scoresExp),
       control = sum(((1-mdcdExp) * mort_wndr) / scoresNoExp) / sum((1-mdcdExp) / scoresNoExp),
